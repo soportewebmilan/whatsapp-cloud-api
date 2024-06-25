@@ -18,6 +18,17 @@ use Netflie\WhatsAppCloudApi\Message\OptionsList\Action;
 use Netflie\WhatsAppCloudApi\Message\OptionsList\Row;
 use Netflie\WhatsAppCloudApi\Message\OptionsList\Section;
 use Netflie\WhatsAppCloudApi\Message\Template\Component;
+use Netflie\WhatsAppCloudApi\Message\Template\Components\BodyComponent;
+use Netflie\WhatsAppCloudApi\Message\Template\Components\ButtonComponent;
+use Netflie\WhatsAppCloudApi\Message\Template\Components\Buttons;
+use Netflie\WhatsAppCloudApi\Message\Template\Components\Cards\Card;
+use Netflie\WhatsAppCloudApi\Message\Template\Components\CarouselComponent;
+use Netflie\WhatsAppCloudApi\Message\Template\Components\HeaderComponent;
+use Netflie\WhatsAppCloudApi\Message\Template\Parameters\Buttons\PayloadButton;
+use Netflie\WhatsAppCloudApi\Message\Template\Parameters\Buttons\UrlButton;
+use Netflie\WhatsAppCloudApi\Message\Template\Parameters\Media\Image;
+use Netflie\WhatsAppCloudApi\Message\Template\Parameters\Media\Video;
+use Netflie\WhatsAppCloudApi\Message\Template\Parameters\Text;
 use Netflie\WhatsAppCloudApi\Response\ResponseException;
 use Netflie\WhatsAppCloudApi\WhatsAppCloudApi;
 use PHPUnit\Framework\TestCase;
@@ -270,6 +281,75 @@ final class WhatsAppCloudApiTest extends TestCase
         $this->assertEquals(false, $response->isError());
     }
 
+    public function test_send_carousel_template()
+    {
+        $to = $this->faker->phoneNumber;
+        $url = $this->buildMessageRequestUri();
+        $template_name = $this->faker->name;
+        $language = $this->faker->locale;
+
+        /* Message bubble; can omit if template message bubble has no variables */
+        $component_body = new BodyComponent();
+        $component_body->addParameter(new Text('<BUBBLE_TEXT_VARIABLE>'));
+
+        /**START CAROUSEL TEMPLATE EXAMPLE */
+        /* Carousel cards */
+        $component_carousel = new CarouselComponent();
+
+        /**Add 3 cards to the carousel - The maximum card quantity is 10 */
+        for ($i = 0; $i < 3; $i++) {
+            $index = $i + 1;
+            $card_header = new HeaderComponent();
+            $card_header->addParameter(new Image("<HEADER_ASSET_ID_OR_LINK_$index>"));
+            $card_body = new BodyComponent();
+            $card_body->addParameter(new Text("<CARD_BODY_VARIABLE_$index>"));
+            $card_body->addParameter(new Text("<CARD_BODY_VARIABLE_2_$index>"));
+            $card_buttons = new Buttons();
+            $card_buttons->addButton((new ButtonComponent())->setParameter(new PayloadButton("<QUICK_REPLY_BUTTON_PAYLOAD_$index>")));
+            $card_buttons->addButton((new ButtonComponent('url'))->setParameter(new PayloadButton("<URL_BUTTON_PAYLOAD_$index>")));
+
+            $card = new Card(new Component($card_header, $card_body, $card_buttons));
+
+            $component_carousel->addCard($card);
+        }
+        /**END CAROUSEL TEMPALTE EXAMPLE */
+        dump($component_carousel->toArray());
+        $components = new Component($component_body, $component_carousel);
+
+        $body = [
+            'messaging_product' => 'whatsapp',
+            'recipient_type' => 'individual',
+            'to' => $to,
+            'type' => 'template',
+            'template' => [
+                'name' => $template_name,
+                'language' => ['code' => $language],
+                'components' => $components->toArray()
+            ],
+        ];
+        $headers = [
+            'Authorization' => 'Bearer ' . $this->access_token,
+        ];
+
+        $this->client_handler
+            ->postJsonData($url, $body, $headers, Argument::type('int'))
+            ->shouldBeCalled()
+            ->willReturn(new RawResponse($headers, $this->successfulMessageNodeResponse(), 200));
+
+        $components = new Component($component_body, $component_carousel);
+        $response = $this->whatsapp_app_cloud_api->sendTemplate(
+            $to,
+            $template_name,
+            $language,
+            $components
+        );
+
+        $this->assertEquals(200, $response->httpStatusCode());
+        $this->assertEquals(json_decode($this->successfulMessageNodeResponse(), true), $response->decodedBody());
+        $this->assertEquals($this->successfulMessageNodeResponse(), $response->body());
+        $this->assertEquals(false, $response->isError());
+    }
+
     public function test_send_template_with_components()
     {
         $to = $this->faker->phoneNumber;
@@ -277,42 +357,15 @@ final class WhatsAppCloudApiTest extends TestCase
         $template_name = $this->faker->name;
         $language = $this->faker->locale;
 
-        $component_header = [
-            [
-                'type' => 'text',
-                'text' => 'I\'m a heder',
-            ],
-        ];
-        $component_body = [
-            [
-                'type' => 'text',
-                'text' => '*Mr Jones*',
-            ],
-        ];
-        $component_buttons = [
-            [
-                'type' => 'button',
-                'sub_type' => 'quick_reply',
-                'index' => 0,
-                'parameters' => [
-                    [
-                        'type' => 'text',
-                        'text' => 'Yes',
-                    ],
-                ],
-            ],
-            [
-                'type' => 'button',
-                'sub_type' => 'quick_reply',
-                'index' => 1,
-                'parameters' => [
-                    [
-                        'type' => 'text',
-                        'text' => 'No',
-                    ],
-                ],
-            ],
-        ];
+        $component_header = new HeaderComponent();
+        $component_header->addParameter(new Text('I\'m a heder'));
+
+        $component_body = new BodyComponent();
+        $component_body->addParameter(new Text('*Mr Jones*'));
+
+        $component_buttons = new Buttons();
+        $component_buttons->addButton((new ButtonComponent())->setParameter(new PayloadButton('Yes')));
+        $component_buttons->addButton((new ButtonComponent())->setParameter(new PayloadButton('No')));
 
         $components = new Component($component_header, $component_body, $component_buttons);
 
@@ -324,38 +377,7 @@ final class WhatsAppCloudApiTest extends TestCase
             'template' => [
                 'name' => $template_name,
                 'language' => ['code' => $language],
-                'components' => [
-                    [
-                        'type' => 'header',
-                        'parameters' => $component_header,
-                    ],
-                    [
-                        'type' => 'body',
-                        'parameters' => $component_body,
-                    ],
-                    [
-                        'type' => 'button',
-                        'sub_type' => 'quick_reply',
-                        'index' => 0,
-                        'parameters' => [
-                            [
-                                'type' => 'text',
-                                'text' => 'Yes',
-                            ],
-                        ],
-                    ],
-                    [
-                        'type' => 'button',
-                        'sub_type' => 'quick_reply',
-                        'index' => 1,
-                        'parameters' => [
-                            [
-                                'type' => 'text',
-                                'text' => 'No',
-                            ],
-                        ],
-                    ],
-                ],
+                'components' => $components->toArray()
             ],
         ];
         $headers = [

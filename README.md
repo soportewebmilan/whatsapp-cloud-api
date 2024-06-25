@@ -1,6 +1,5 @@
 ![](https://netflie.es/wp-content/uploads/2022/05/whatsapp_cloud_api_banner-1.png)
 
-
 ## What It Does
 This package makes it easy for developers to access [WhatsApp Cloud API](https://developers.facebook.com/docs/whatsapp/cloud-api "WhatsApp Cloud API") service in their PHP code.
 
@@ -12,7 +11,7 @@ Please create and configure your Facebook WhatsApp application following the ["G
 Minimum requirements – To run the SDK, your system will require **PHP >= 7.4** with a recent version of **CURL >=7.19.4** compiled with OpenSSL and zlib.
 
 ## Installation
-```composer require netflie/whatsapp-cloud-api ```
+```composer require milan/whatsapp-cloud-api ```
 
 ## Quick Examples
 
@@ -32,6 +31,107 @@ $whatsapp_cloud_api = new WhatsAppCloudApi([
 ]);
 
 $whatsapp_cloud_api->sendTextMessage('34676104574', 'Hey there! I\'m using WhatsApp Cloud API. Visit https://www.netflie.es');
+```
+
+## Additional functionality
+
+This package is based on [netflie/whatsapp-cloud-api](https://github.com/netflie/whatsapp-cloud-api).
+
+- Eeasy to use tempaltes with parameters
+
+```php
+<?php
+
+use Netflie\WhatsAppCloudApi\Message\Template\Component;
+use Netflie\WhatsAppCloudApi\Message\Template\Components\BodyComponent;
+use Netflie\WhatsAppCloudApi\Message\Template\Components\ButtonComponent;
+use Netflie\WhatsAppCloudApi\Message\Template\Components\Buttons;
+use Netflie\WhatsAppCloudApi\Message\Template\Components\HeaderComponent;
+use Netflie\WhatsAppCloudApi\Message\Template\Parameters\Buttons\PayloadButton;
+use Netflie\WhatsAppCloudApi\Message\Template\Parameters\Buttons\UrlButton;
+use Netflie\WhatsAppCloudApi\Message\Template\Parameters\Text;
+use Netflie\WhatsAppCloudApi\Message\Template\Parameters\Image;
+
+...
+
+$component_header = new HeaderComponent();
+$component_header->addParameter(new Image('https://example.com/image.jpg')); //You can set a public Link or MediaId from Meta
+
+$component_body = new BodyComponent();
+$component_body->addParameter(new Text('*Mr Jones*'));
+
+$component_buttons = new Buttons();
+//You can set the order in the ButtonComponent or leave it blank or 0 to maintain the order as you add.
+$component_buttons->addButton((new ButtonComponent())->setParameter(new PayloadButton('Yes'))); //Quick reply param Yes
+$component_buttons->addButton((new ButtonComponent())->setParameter(new PayloadButton('No'))); //Quick reply param No 
+$component_buttons->addButton((new ButtonComponent('url'))->setParameter(new UrlButton('123'))); //URL param https://example.com/user/123
+
+$components = new Component($component_header, $component_body, $component_buttons);//The arguments not require a specific order
+$whatsapp_cloud_api->sendTemplate('34676104574', 'sample_issue_resolution', 'en_US', $components); // Language is optional
+
+...
+```
+Support Parameter Types base on: https://developers.facebook.com/docs/whatsapp/cloud-api/reference/messages/#parameter-object
+- currency
+- date_time
+- document
+- image
+- text
+- video
+
+This package also adds support to Carousel tempaltes.
+
+![](https://scontent.fbga2-1.fna.fbcdn.net/v/t39.2365-6/400516056_3407655096213958_4402509594423009060_n.png?stp=dst-webp&_nc_cat=102&ccb=1-7&_nc_sid=e280be&_nc_ohc=9NDa-68p2V4Q7kNvgE521wT&_nc_ht=scontent.fbga2-1.fna&oh=00_AYDgBStZPh1X73vd1uXWbdBpEcM4NJ6n0UPeyCQFS2YRhw&oe=66946AAE)
+
+### Send a Carousel template message
+```php
+<?php
+
+use Netflie\WhatsAppCloudApi\Message\Template\Component;
+use Netflie\WhatsAppCloudApi\Message\Template\Components\BodyComponent;
+use Netflie\WhatsAppCloudApi\Message\Template\Components\ButtonComponent;
+use Netflie\WhatsAppCloudApi\Message\Template\Components\Buttons;
+use Netflie\WhatsAppCloudApi\Message\Template\Components\HeaderComponent;
+use Netflie\WhatsAppCloudApi\Message\Template\Parameters\Buttons\PayloadButton;
+use Netflie\WhatsAppCloudApi\Message\Template\Parameters\Text;
+use Netflie\WhatsAppCloudApi\Message\Template\Parameters\Image;
+
+...
+
+/* Message bubble; can omit if template message bubble has no variables */
+$component_body = new BodyComponent();
+$component_body->addParameter(new Text('<BUBBLE_TEXT_VARIABLE>'));
+
+$component_carousel = new CarouselComponent();
+/* Carousel cards */
+/**You can add maximum 10 cards. Each card use Header, Body and Buttons (max 2 buttons) components*/
+$card_header = new HeaderComponent();
+$card_header->addParameter(new Image("<HEADER_ASSET_ID_OR_LINK>")); //Card Header should has Image or Video
+$card_body = new BodyComponent();
+$card_body->addParameter(new Text("<CARD_BODY_VARIABLE>"));
+$card_body->addParameter(new Text("<CARD_BODY_VARIABLE_2>"));
+$card_buttons = new Buttons();
+$card_buttons->addButton((new ButtonComponent())->setParameter(new PayloadButton("<QUICK_REPLY_BUTTON_PAYLOAD>")));
+$card_buttons->addButton((new ButtonComponent('url'))->setParameter(new PayloadButton("<URL_BUTTON_PAYLOAD>")));
+
+//You can use two ways for create Card 
+/**USE ONLY ONE**/
+/**Pass a Component instance in the constructor */
+$card = new Card(new Component($card_header, $card_body, $card_buttons));
+
+/**Add each component separatly with the method addComponent */
+$card = new Card();
+$card->addComponent($card_header);
+$card->addComponent($card_body);
+$card->addComponent($card_buttons);
+
+$component_carousel->addCard($card);
+/**END CAROUSEL TEMPALTE EXAMPLE */
+
+$components = new Component($component_body, $component_carousel);
+$whatsapp_cloud_api->sendTemplate('34676104574', 'sample_carousel_template', 'en_US', $components); // Language is optional
+
+...
 ```
 
 ### Send a document
@@ -62,51 +162,6 @@ $whatsapp_cloud_api->sendDocument('34676104574', $link_id, $document_name, $docu
 <?php
 
 $whatsapp_cloud_api->sendTemplate('34676104574', 'hello_world', 'en_US'); // Language is optional
-```
-
-You also can build templates with parameters:
-
-```php
-<?php
-
-use Netflie\WhatsAppCloudApi\Message\Template\Component;
-
-$component_header = [];
-
-$component_body = [
-    [
-        'type' => 'text',
-        'text' => '*Mr Jones*',
-    ],
-];
-
-$component_buttons = [
-    [
-        'type' => 'button',
-        'sub_type' => 'quick_reply',
-        'index' => 0,
-        'parameters' => [
-            [
-                'type' => 'text',
-                'text' => 'Yes',
-            ]
-        ]
-    ],
-    [
-        'type' => 'button',
-        'sub_type' => 'quick_reply',
-        'index' => 1,
-        'parameters' => [
-            [
-                'type' => 'text',
-                'text' => 'No',
-            ]
-        ]
-    ]
-];
-
-$components = new Component($component_header, $component_body, $component_buttons);
-$whatsapp_cloud_api->sendTemplate('34676104574', 'sample_issue_resolution', 'en_US', $components); // Language is optional
 ```
 
 ### Send an audio message

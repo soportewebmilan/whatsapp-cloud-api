@@ -7,8 +7,8 @@ use Netflie\WhatsAppCloudApi\Request\MessageRequest;
 final class RequestTemplateMessage extends MessageRequest
 {
     /**
-    * {@inheritdoc}
-    */
+     * {@inheritdoc}
+     */
     public function body(): array
     {
         $body = [
@@ -19,27 +19,9 @@ final class RequestTemplateMessage extends MessageRequest
             'template' => [
                 'name' => $this->message->name(),
                 'language' => ['code' => $this->message->language()],
-                'components' => [],
+                'components' => $this->message->components(),
             ],
         ];
-
-        if ($this->message->header()) {
-            $body['template']['components'][] = [
-                'type' => 'header',
-                'parameters' => $this->message->header(),
-            ];
-        }
-
-        if ($this->message->body()) {
-            $body['template']['components'][] = [
-                'type' => 'body',
-                'parameters' => $this->message->body(),
-            ];
-        }
-
-        foreach ($this->message->buttons() as $button) {
-            $body['template']['components'][] = $button;
-        }
 
         if ($this->message->replyTo()) {
             $body['context']['message_id'] = $this->message->replyTo();

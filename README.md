@@ -1,5 +1,8 @@
 ![](https://netflie.es/wp-content/uploads/2022/05/whatsapp_cloud_api_banner-1.png)
 
+> **_IMPORTANT:_** This package is based on [netflie/whatsapp-cloud-api](https://github.com/netflie/whatsapp-cloud-api).
+This package adds support to send Carousel Templates and use OOP to send Templates
+
 ## What It Does
 This package makes it easy for developers to access [WhatsApp Cloud API](https://developers.facebook.com/docs/whatsapp/cloud-api "WhatsApp Cloud API") service in their PHP code.
 
@@ -79,7 +82,7 @@ Support Parameter Types base on: https://developers.facebook.com/docs/whatsapp/c
 - text
 - video
 
-This package also adds support to Carousel tempaltes.
+- This package also adds support to send Carousel tempaltes.
 
 ![](https://scontent.fbga2-1.fna.fbcdn.net/v/t39.2365-6/400516056_3407655096213958_4402509594423009060_n.png?stp=dst-webp&_nc_cat=102&ccb=1-7&_nc_sid=e280be&_nc_ohc=9NDa-68p2V4Q7kNvgE521wT&_nc_ht=scontent.fbga2-1.fna&oh=00_AYDgBStZPh1X73vd1uXWbdBpEcM4NJ6n0UPeyCQFS2YRhw&oe=66946AAE)
 
